@@ -23,7 +23,7 @@ Supuesto de interfaz con Track A (state.py):
     de clase. Si `state.py` usa otra forma, ajustar `build_history_block()`.
 """
 
-MAX_TURNOS_HISTORIAL = 4
+from config import MAX_TURNOS_HISTORIAL
 
 CONTACTOS = {
     "rrhh": "rrhh@bridgesa.example",
@@ -108,13 +108,16 @@ def build_docs_block(contexto: dict) -> str:
     return "\n".join(lineas)
 
 
-def build_history_block(historial: list[dict] | None, max_turnos: int = MAX_TURNOS_HISTORIAL) -> str:
-    """Formatea los últimos `max_turnos` mensajes del historial como texto plano."""
+def build_history_block(historial: list[dict] | None) -> str:
+    """Formatea el historial (ya acotado por state.py) como texto plano.
+    
+    historial que recibe build_chat_prompt viene ya acotado a MAX_TURNOS_HISTORIAL turnos completos 
+    por state.historial_acotado(). prompts.py no vuelve a recortar, solo formatea.
+    """
     historial = historial or []
-    recientes = historial[-max_turnos:] if max_turnos > 0 else historial
-    if not recientes:
+    if not historial:
         return "(sin turnos previos)"
-    return "\n".join(f"{m['role']}: {m['text']}" for m in recientes)
+    return "\n".join(f"{m['role']}: {m['text']}" for m in historial)
 
 
 def build_chat_prompt(
@@ -124,7 +127,6 @@ def build_chat_prompt(
     contexto: dict,
     historial: list[dict] | None = None,
 ) -> str:
-    """Ensambla el prompt de conversación (funcionalidad 1: chat)."""
     return f"""{SYSTEM_PROMPT}
 
 {build_empleado_block(empleado, dia)}

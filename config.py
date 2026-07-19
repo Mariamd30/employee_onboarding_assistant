@@ -17,8 +17,17 @@ MAX_TOKENS_INPUT = 8_000
 MAX_INPUT_CHARS = 2_000
 MAX_TURNOS_HISTORIAL = 4              # límite explícito de la guía
 
-MAX_DOCS_POR_TURNO = 3                # selección de contexto (Parte 2)
+# Máximo de elementos de contexto por turno (acordado en el README: máx. 3
+# docs + 2 FAQ) y longitud máxima de cada cuerpo de documento antes de truncar.
+MAX_DOCS_POR_TURNO = 3        
 MAX_FAQ_POR_TURNO = 2
+MAX_DOC_CHARS = 600
+
+
+# Departamentos "transversales": sus documentos son relevantes para
+# cualquier empleado, no solo para quien pertenece a ese departamento
+# (vacaciones, conducta, RRHH, beneficios, buddy... aplican a todos).
+DEPARTAMENTOS_TRANSVERSALES = {"people"}
 
 # Detección de inyección (Parte 3)
 PATRONES_SOSPECHOSOS = (

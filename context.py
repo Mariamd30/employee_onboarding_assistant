@@ -4,7 +4,7 @@ Qué hace este módulo:
   - `cargar_documentos()` / `cargar_faq()` leen `data/onboarding_docs.json` y
     `data/faq_onboarding.json`.
   - `construir_contexto()` elige, para una pregunta y un departamento dados,
-    como máximo `MAX_DOCS` documentos y `MAX_FAQS` entradas de FAQ (sin
+    como máximo `MAX_DOCS_POR_TURNO` documentos y `MAX_FAQ_POR_TURNO` entradas de FAQ (sin
     volcar todo el JSON en el prompt), y trunca cuerpos largos.
 
 Para qué sirve:
@@ -22,20 +22,11 @@ Qué NO hace este módulo:
 import json
 from pathlib import Path
 
+from config import MAX_DOCS_POR_TURNO, MAX_FAQ_POR_TURNO, MAX_DOC_CHARS, DEPARTAMENTOS_TRANSVERSALES
+
 DATA_DIR = Path(__file__).parent / "data"
 DOCS_PATH = DATA_DIR / "onboarding_docs.json"
 FAQ_PATH = DATA_DIR / "faq_onboarding.json"
-
-# Máximo de elementos de contexto por turno (acordado en el README: máx. 3
-# docs + 2 FAQ) y longitud máxima de cada cuerpo de documento antes de truncar.
-MAX_DOCS = 3
-MAX_FAQS = 2
-MAX_DOC_CHARS = 600
-
-# Departamentos "transversales": sus documentos son relevantes para
-# cualquier empleado, no solo para quien pertenece a ese departamento
-# (vacaciones, conducta, RRHH, beneficios, buddy... aplican a todos).
-DEPARTAMENTOS_TRANSVERSALES = {"people"}
 
 
 def cargar_documentos(ruta: Path = DOCS_PATH) -> list[dict]:
@@ -106,7 +97,7 @@ def seleccionar_documentos(
     pregunta: str,
     departamento: str | None,
     docs: list[dict],
-    max_docs: int = MAX_DOCS,
+    max_docs: int = MAX_DOCS_POR_TURNO,
 ) -> list[dict]:
     """Elige como máximo `max_docs` documentos relevantes, con el cuerpo truncado."""
     puntuados = [(_puntuar_documento(d, pregunta, departamento), d) for d in docs]
@@ -124,7 +115,7 @@ def seleccionar_documentos(
 def seleccionar_faq(
     pregunta: str,
     faqs: list[dict],
-    max_entradas: int = MAX_FAQS,
+    max_entradas: int = MAX_FAQ_POR_TURNO,
 ) -> list[dict]:
     """Elige como máximo `max_entradas` entradas de FAQ relevantes."""
     puntuadas = [(_puntuar_faq(e, pregunta), e) for e in faqs]
