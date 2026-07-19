@@ -75,9 +75,10 @@ git clone https://github.com/Mariamd30/employee_onboarding_assistant
 cd employee-onboarding-assistant
 
 # 2. Crear y activar entorno virtual
-python -m venv .venv
+py -m venv .venv
 source .venv/bin/activate       # Mac/Linux
 .venv\Scripts\activate          # Windows
+source .venv/Scripts/activate   # Windows (Git Bash)
 
 # 3. Instalar dependencias
 pip install -r requirements.txt
