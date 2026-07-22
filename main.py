@@ -49,9 +49,33 @@ def demo_3_comparativa_perfiles():
         resultado = logic.procesar_chat(sesion, pregunta, docs=DOCS, faqs=FAQS)
         print(f"\n--- {empleado['nombre']} ({empleado['perfil']}) ---")
         print(resultado)
+        
+def demo_4_vulnerable_vs_seguro():
+    print("\n=== Demo 4: vulnerable vs seguro ( casos trampa ) ===")
+    
+    with open("data/casos_trampa.json", encoding="utf-8") as f:
+        casos_trampa = json.load(f)
+        
+    empleado = EMPLEADOS["emp_01"]
+    
+    for caso in casos_trampa:
+        sesion_vulnerable = state.inicializar_estado(empleado, dia=1)
+        sesion_segura = state.inicializar_estado(empleado, dia=1)
+        
+        print(f"\n--- Caso: {caso['id']} ({caso['categoria']}) ---")
+        print(f"Mensaje: {caso['pregunta']}")
+        
+        print("\n[MODO VULNERABLE]")
+        resultado_vulnerable = logic.procesar_chat_sin_validar(sesion_vulnerable, caso['pregunta'], docs=DOCS, faqs=FAQS)
+        print(resultado_vulnerable)
+        
+        print("\n[MODO SEGURO]")
+        resultado_seguro = logic.procesar_chat(sesion_segura, caso['pregunta'], docs=DOCS, faqs=FAQS)
+        print(resultado_seguro)
 
 
 if __name__ == "__main__":
     demo_1_chat()
     demo_2_checklist()
     demo_3_comparativa_perfiles()
+    demo_4_vulnerable_vs_seguro()
