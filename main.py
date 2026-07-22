@@ -75,7 +75,7 @@ def demo_4_vulnerable_vs_seguro():
 
 
 if __name__ == "__main__":
-    # demo_1_chat()
-    # demo_2_checklist()
-    # demo_3_comparativa_perfiles()
+    demo_1_chat()
+    demo_2_checklist()
+    demo_3_comparativa_perfiles()
     demo_4_vulnerable_vs_seguro()
