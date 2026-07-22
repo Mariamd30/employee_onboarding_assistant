@@ -1,26 +1,24 @@
 """benchmark.py — Motor del benchmark (Parte 4).
 
 Qué hace este módulo:
-  - Carga `data/preguntas_benchmark.json` (mínimo 10 casos).
+  - Carga `data/plantilla_preguntas_benchmark.json` (12 casos).
   - Para cada caso, construye el prompt real de la app reutilizando
     `context.construir_contexto()` y `prompts.build_chat_prompt()` /
-    `prompts.build_checklist_prompt()` — el benchmark evalúa el pipeline
-    real de selección de contexto + construcción de prompt, no solo al
-    modelo desnudo.
+    `prompts.build_checklist_prompt()`.
   - Llama a cada modelo de `config.BENCHMARK_MODELS` con la MISMA
-    temperatura (`config.TEMPERATURE`) y recoge latencia, tokens y
-    respuesta (o el JSON, para los casos de tipo "checklist").
-  - Los errores de API se capturan por fila sin detener la ejecución.
+    temperatura (`config.TEMPERATURE`), reutilizando `gemini_client.safe_generate()`
+    y `gemini_client.MetricasLlamada` (NO se duplican llamadas a la API
+    fuera de safe_generate).
+  - Los errores de API (p. ej. 429 por cuota) se capturan por fila sin
+    detener la ejecución.
 
 Para qué sirve:
   - Es la base para `report.py` (CSV + informe) y para rellenar
     `entregables/matriz_decision.md` y `entregables/recomendacion.md`.
 
-Qué NO hace este módulo:
-  - No pasa por `logic.py` ni por `validators.py`: llama al modelo
-    directamente con el prompt ya construido, porque necesita variar el
-    modelo por llamada (cosa que `gemini_client.safe_generate()` de momento
-    no soporta — usa siempre `config.MODEL`). 
+Requisito de dependencias:
+  - Necesita que `gemini_client.py` tenga el parámetro opcional `model`
+    añadido para poder variar el modelo por llamada sin duplicar el cliente.
 """
 
 import json
@@ -28,26 +26,16 @@ import time
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 
-from google import genai
-from google.genai import types
-
 import context
 import prompts
 from config import BENCHMARK_DATA_PATH, BENCHMARK_MODELS, TEMPERATURE
-from gemini_auth import configurar_gemini_api_key
-
-configurar_gemini_api_key()
+from gemini_client import MetricasLlamada, safe_generate
 
 DATA_DIR = BENCHMARK_DATA_PATH.parent
 
-_client_instance: genai.Client | None = None
-
-
-def _client() -> genai.Client:
-    global _client_instance
-    if _client_instance is None:
-        _client_instance = genai.Client()
-    return _client_instance
+# Nivel gratuito de Gemini: 5 peticiones/minuto por modelo. 13s de margen
+# entre llamadas evita 429 RESOURCE_EXHAUSTED sin tener que reintentar.
+PAUSA_ENTRE_LLAMADAS_S = 13
 
 
 @dataclass
@@ -68,34 +56,11 @@ class FilaBenchmark:
     error: str | None = None
 
 
-def _llamar_modelo(prompt: str, model: str, *, json_mode: bool) -> tuple[str, dict]:
-    """Mini-cliente propio del benchmark: permite variar el modelo por llamada."""
-    started = time.time()
-    config_kwargs = {"temperature": TEMPERATURE}
-    if json_mode:
-        config_kwargs["response_mime_type"] = "application/json"
-
-    response = _client().models.generate_content(
-        model=model,
-        contents=prompt,
-        config=types.GenerateContentConfig(**config_kwargs),
-    )
-    elapsed_ms = int((time.time() - started) * 1000)
-    um = response.usage_metadata
-    metricas = {
-        "elapsed_ms": elapsed_ms,
-        "prompt_tokens": getattr(um, "prompt_token_count", None),
-        "output_tokens": getattr(um, "candidates_token_count", None),
-        "total_tokens": getattr(um, "total_token_count", None),
-    }
-    return (response.text or "").strip(), metricas
-
-
 def cargar_casos(ruta=BENCHMARK_DATA_PATH) -> list[dict]:
     with ruta.open(encoding="utf-8") as f:
         data = json.load(f)
     if not isinstance(data, list):
-        raise ValueError("preguntas_benchmark.json debe ser una lista de casos")
+        raise ValueError("plantilla_preguntas_benchmark.json debe ser una lista de casos")
     return data
 
 
@@ -122,7 +87,6 @@ def _construir_prompt(caso: dict, empleado: dict, docs: list[dict], faqs: list[d
     else:
         pregunta = caso["pregunta"]
         contexto = context.construir_contexto(pregunta, departamento, docs=docs, faqs=faqs)
-        # Benchmark = 1 turno; no se simula historial previo.
         prompt = prompts.build_chat_prompt(empleado, dia, pregunta, contexto, historial=None)
 
     return prompt, es_checklist, contexto
@@ -131,12 +95,12 @@ def _construir_prompt(caso: dict, empleado: dict, docs: list[dict], faqs: list[d
 def ejecutar_benchmark() -> list[FilaBenchmark]:
     casos = cargar_casos()
     empleados = cargar_empleados()
-    # Carga única de docs/FAQ para todo el benchmark (evita releer disco
-    # en cada combinación caso × modelo).
     docs = context.cargar_documentos()
     faqs = context.cargar_faq()
 
     filas: list[FilaBenchmark] = []
+    total_llamadas = len(casos) * len(BENCHMARK_MODELS)
+    llamada_actual = 0
 
     for caso in casos:
         caso_id = caso["id"]
@@ -152,9 +116,15 @@ def ejecutar_benchmark() -> list[FilaBenchmark]:
         tipo = caso.get("tipo", "chat")
 
         for modelo in BENCHMARK_MODELS:
+            llamada_actual += 1
             ts = datetime.now(timezone.utc).isoformat()
             try:
-                texto, m = _llamar_modelo(prompt, modelo, json_mode=json_mode)
+                texto, m = safe_generate(
+                    prompt,
+                    model=modelo,
+                    temperature=TEMPERATURE,
+                    json_mode=json_mode,
+                )
 
                 json_valido = None
                 if json_mode:
@@ -172,16 +142,16 @@ def ejecutar_benchmark() -> list[FilaBenchmark]:
                         empleado_id=empleado_id,
                         dia=dia,
                         modelo=modelo,
-                        elapsed_ms=m["elapsed_ms"],
-                        prompt_tokens=m["prompt_tokens"],
-                        output_tokens=m["output_tokens"],
-                        total_tokens=m["total_tokens"],
+                        elapsed_ms=m.elapsed_ms,
+                        prompt_tokens=m.prompt_tokens,
+                        output_tokens=m.output_tokens,
+                        total_tokens=m.total_tokens,
                         respuesta=texto,
                         json_valido=json_valido,
                         docs_usados=docs_usados,
                     )
                 )
-                print(f"OK  {caso_id} × {modelo} ({m['elapsed_ms']} ms)")
+                print(f"OK  {caso_id} × {modelo} ({m.elapsed_ms} ms)")
             except Exception as exc:  # noqa: BLE001 — benchmark didáctico
                 filas.append(
                     FilaBenchmark(
@@ -202,8 +172,11 @@ def ejecutar_benchmark() -> list[FilaBenchmark]:
                     )
                 )
                 print(f"ERR {caso_id} × {modelo}: {exc}")
-            # dentro del for modelo in BENCHMARK_MODELS: después de cada llamada:
-            time.sleep(13)  # 60s / 5 peticiones ≈ 12s; 13s da margen
+
+            # Respeta el límite de 5 peticiones/minuto del nivel gratuito.
+            if llamada_actual < total_llamadas:
+                time.sleep(PAUSA_ENTRE_LLAMADAS_S)
+
     return filas
 
 

@@ -46,17 +46,13 @@ DOMINIO_KEYWORDS = (
 )
 
 # --- Parte 4 (Benchmark) ---
-# Añade constantes nuevas al final del
-# fichero. MODEL y TEMPERATURE ya existen arriba y se reutilizan tal cual
-# (la guía recomienda la MISMA temperatura para todos los modelos del
-# benchmark, así que no se define una nueva).
 
 BENCHMARK_MODELS = [
     "gemini-2.5-flash",   # modelo estable, ya probado en producción
     MODEL,                # "gemini-3-flash-preview" — el que usa la app hoy
 ]
 
-BENCHMARK_DATA_PATH = Path(__file__).parent / "data" / "preguntas_benchmark.json"
+BENCHMARK_DATA_PATH = Path(__file__).parent / "data" / "plantilla_preguntas_benchmark.json"
 OUTPUT_DIR = Path(__file__).parent / "output"
 ENTREGABLES_DIR = Path(__file__).parent / "entregables"
 
