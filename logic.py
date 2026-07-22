@@ -105,6 +105,55 @@ def procesar_chat(
         },
     )
 
+def procesar_chat_sin_validar(
+    sesion: dict,
+    pregunta: str,
+    docs: list[dict] | None = None,
+    faqs: list[dict] | None = None,
+) -> dict:
+    """Versión VULNERABLE de procesar_chat
+ 
+    Idéntica a procesar_chat. Así, cualquier diferencia de
+    comportamiento frente a la versión segura se debe únicamente a la falta
+    de validación de entrada, no a otros cambios.
+ 
+    NO USAR en producción ni en main.py real — solo para benchmark.py /
+    demo, para ilustrar por qué la validación de la Parte 3 es necesaria
+    (p. ej. inyección de instrucciones, fuga de datos sensibles).
+    """
+    
+    empleado = sesion["empleado"]
+    dia = sesion["dia"]
+    departamento = empleado.get("departamento")
+ 
+    contexto = context.construir_contexto(pregunta, departamento, docs=docs, faqs=faqs)
+    historial = state.historial_acotado(sesion)
+ 
+    prompt = prompts.build_chat_prompt(
+        empleado=empleado,
+        dia=dia,
+        pregunta=pregunta,
+        contexto=contexto,
+        historial=historial,
+    )
+ 
+    try:
+        texto, metricas = safe_generate(prompt, json_mode=False)
+    except ValueError as e:
+        return respuesta_error("No se pudo generar la respuesta.", [str(e)])
+ 
+    state.append_user(sesion, pregunta)
+    state.append_assistant(sesion, texto)
+ 
+    return respuesta_ok(
+        "Respuesta generada (SIN validación de entrada).",
+        data={
+            "respuesta": texto,
+            "docs_usados": [d["id"] for d in contexto["docs"]],
+            "faqs_usadas": [f["id"] for f in contexto["faqs"]],
+            "metricas": metricas.__dict__,
+        },
+    )
 
 # ---------------------------------------------------------------------------
 # Funcionalidad 2 — Checklist JSON
