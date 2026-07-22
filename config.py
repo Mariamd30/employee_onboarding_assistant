@@ -10,7 +10,7 @@ Para qué sirve:
 Qué NO debes hacer aquí:
   - Normalmente no modificas este archivo en la práctica (salvo experimentos opcionales).
 """
-
+from pathlib import Path
 MODEL = "gemini-3-flash-preview"      # confirmar cuál usaréis en Parte 4
 TEMPERATURE = 0.2                     # la guía recomienda 0.2 para el benchmark
 MAX_TOKENS_INPUT = 8_000
@@ -44,3 +44,17 @@ PATRONES_SOSPECHOSOS = (
 DOMINIO_KEYWORDS = (
     
 )
+
+# --- Parte 4 (Benchmark) ---
+
+BENCHMARK_MODELS = [
+    "gemini-2.5-flash",   # modelo estable, ya probado en producción
+    MODEL,                # "gemini-3-flash-preview" — el que usa la app hoy
+]
+
+BENCHMARK_DATA_PATH = Path(__file__).parent / "data" / "plantilla_preguntas_benchmark.json"
+OUTPUT_DIR = Path(__file__).parent / "output"
+ENTREGABLES_DIR = Path(__file__).parent / "entregables"
+
+MIN_CASOS_BENCHMARK = 10
+
