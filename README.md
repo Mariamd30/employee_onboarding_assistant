@@ -64,6 +64,7 @@ Arquitectura modular por responsabilidades, sin script monolítico. Cada fichero
 ## ⚙️ Instalación y configuración
 
 ### Requisitos previos
+
 - Python 3.10+
 - Una API key de Google AI Studio (`GEMINI_API_KEY`)
 
@@ -75,9 +76,10 @@ git clone https://github.com/Mariamd30/employee_onboarding_assistant
 cd employee-onboarding-assistant
 
 # 2. Crear y activar entorno virtual
-python -m venv .venv
+py -m venv .venv
 source .venv/bin/activate       # Mac/Linux
 .venv\Scripts\activate          # Windows
+source .venv/Scripts/activate   # Windows (Git Bash)
 
 # 3. Instalar dependencias
 pip install -r requirements.txt
@@ -96,13 +98,20 @@ python main.py
 ```
 
 El script ejecuta como mínimo:
+
 - **Demo 1**: conversación de 1 turno (empleado dev junior).
 - **Demo 2**: checklist JSON para el día 1.
 - **Demo 3**: mismo mensaje con empleado comercial vs remoto UE (respuestas distintas).
 
 ## 🧠 Estrategia de selección de contexto
 
-> _Completar en la Parte 2._ Documentar aquí: máximo de documentos/FAQ enviados por turno, criterio de filtrado (departamento, keywords), truncado de textos largos, y cómo se acota el historial conversacional (máx. 4 turnos).
+Estrategia de recuperación de contexto
+
+- máximo 3 documentos
+- máximo 2 FAQ
+- filtrado por departamento
+- coincidencia por palabras clave
+- historial limitado a 4 turnos
 
 ## 🔒 Robustez y seguridad
 
@@ -147,12 +156,12 @@ Ver [`docs/politica-escalado.md`](docs/politica-escalado.md) para el detalle de 
 
 | Parte | Responsable |
 |---|---|
-| Setup + Parte 1 (contexto y datos) | [ya hecho] |
-| Parte 2 · Track A — Cliente y estado (`gemini_auth.py`, `gemini_client.py`, `state.py`) | [Alejandro Dietta] |
-| Parte 2 · Track B — Contenido y reglas (`context.py`, `prompts.py`, `validators.py`) | [Maria Murial] |
-| Parte 2 · Integración (`logic.py`, `main.py`) | Ambos, tras cerrar A y B |
-| Parte 3 (robustez) | _por asignar_ |
-| Parte 4 (benchmark) | _por asignar_ |
+| Setup + Parte 1 (contexto y datos) | Alejandro Dietta / Maria Muriel |
+| Parte 2 · Track A — Cliente y estado (`gemini_auth.py`, `gemini_client.py`, `state.py`) | Alejandro Dietta |
+| Parte 2 · Track B — Contenido y reglas (`context.py`, `prompts.py`, `validators.py`) | Maria Muriel |
+| Parte 2 · Integración (`logic.py`, `main.py`) | Alejandro Dietta / Maria Muriel |
+| Parte 3 (robustez) | Javier Corchado |
+| Parte 4 (benchmark) | Maria Muriel |
 
 
 > Cada miembro lidera al menos una parte y revisa las PRs de las demás, cumpliendo la regla mínima de una PR revisada y mergeada por persona.
