@@ -1,4 +1,4 @@
-"""config.py — Constantes del tutor y reglas de seguridad.
+"""config.py — Constantes del asistente de onboarding y reglas de seguridad.
 
 Qué hace este módulo:
   - Define modelo Gemini, perfiles del asistente (`PERFILES`) y `ASSISTANT_CONFIG_DEFAULT`.
@@ -23,6 +23,9 @@ MAX_DOCS_POR_TURNO = 3
 MAX_FAQ_POR_TURNO = 2
 MAX_DOC_CHARS = 600
 
+SCORE_DEPARTAMENTO = 3
+SCORE_TRANSVERSAL = 3
+SCORE_TAG = 2
 
 # Departamentos "transversales": sus documentos son relevantes para
 # cualquier empleado, no solo para quien pertenece a ese departamento

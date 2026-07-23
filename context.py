@@ -22,7 +22,15 @@ Qué NO hace este módulo:
 import json
 from pathlib import Path
 
-from config import MAX_DOCS_POR_TURNO, MAX_FAQ_POR_TURNO, MAX_DOC_CHARS, DEPARTAMENTOS_TRANSVERSALES
+from config import (
+    MAX_DOCS_POR_TURNO,
+    MAX_FAQ_POR_TURNO,
+    MAX_DOC_CHARS,
+    DEPARTAMENTOS_TRANSVERSALES,
+    SCORE_DEPARTAMENTO,
+    SCORE_TRANSVERSAL,
+    SCORE_TAG,
+)
 
 DATA_DIR = Path(__file__).parent / "data"
 DOCS_PATH = DATA_DIR / "onboarding_docs.json"
@@ -66,14 +74,14 @@ def _puntuar_documento(doc: dict, pregunta: str, departamento: str | None) -> in
     doc_depto = doc.get("departamento", "")
 
     if departamento and doc_depto == departamento:
-        score += 3
+        score += SCORE_DEPARTAMENTO
     if doc_depto in DEPARTAMENTOS_TRANSVERSALES:
-        score += 3
+        score += SCORE_TRANSVERSAL
 
     q = (pregunta or "").lower()
     for tag in doc.get("tags", []):
         if tag.lower().replace("_", " ") in q or tag.lower() in q:
-            score += 2
+            score += SCORE_TAG
 
     return score
 
@@ -84,7 +92,7 @@ def _puntuar_faq(entry: dict, pregunta: str) -> int:
     q = (pregunta or "").lower()
     for tag in entry.get("tags", []):
         if tag.lower().replace("_", " ") in q or tag.lower() in q:
-            score += 2
+            score += SCORE_TAG
     # Coincidencia simple de palabras sueltas (>3 letras) entre pregunta y la
     # pregunta guardada en el FAQ, para casos sin tags que la cubran.
     palabras_pregunta = {w for w in q.split() if len(w) > 3}
